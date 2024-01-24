@@ -1,0 +1,61 @@
+# This DAX code is used to extract and process data sources in power BI
+
+DEFINE
+VAR Export_Daily = 
+CALCULATETABLE(
+    SELECTCOLUMNS(
+        vira_dw_ft_fault_report,
+        "Project",vira_dw_ft_fault_report[Lead Project],
+
+        # "Project": Extract and rename in CSV
+        # vira_dw_ft_fault_report: table name in data source
+        # [Lead Project]: Column to be extracted from the source table
+
+"manager_email",vira_dw_ft_fault_report[manager mail],
+......
+"Assignee",SUBSTITUTE(vira_dw_ft_fault_report[Assignee], ",", "-"),
+
+#This is one of the ways to deal with the problem of 
+# inconsistent number of characters in columns caused by commas between words.
+
+"Verification date", FORMAT(vira_dw_ft_fault_report[_Verification date], "yyyy--MM--dd"),
+......
+"link",vira_dw_ft_fault_report[Link],
+"Summary",vira_dw_ft_fault_report[Summary]
+),
+
+# The above is to extract the columns needed later and rename them
+
+# Next, start filtering out the content you need
+
+(vira_dw_ft_fault_report[_PDS/PDG]="PDS")&&(vira_dw_ft_fault_report[solution_name]="Vehicle Tophat")&&(vira_dw_ft_fault_report[_Problem Status] <> "Closed")&&
+(
+        vira_dw_ft_fault_report[_Verification Overdue duration] = "0-2wks" ||
+        vira_dw_ft_fault_report[_Verification Overdue duration] = "3-4wks" ||
+        vira_dw_ft_fault_report[_Verification Overdue duration] = "5-8wks" ||
+        vira_dw_ft_fault_report[_Verification Overdue duration] = "9-24wks" ||
+        vira_dw_ft_fault_report[_Verification Overdue duration] = "25-52wks" ||
+        vira_dw_ft_fault_report[_Verification Overdue duration] = "Over 1 year" ||
+        vira_dw_ft_fault_report[_Verification Overdue duration] = "Verification Date Missing" 
+    )
+)
+EVALUATE
+
+# Sort by assignee
+
+SUMMARIZE (
+    Export_Daily,
+     [Project],
+     [manager_email],
+    [assignee_email],
+    [ART],
+    [Assignee],
+    [Issue],
+    [Verification date],
+    [Verification Overdue duration],
+    [Problem_Status],
+    [link],
+    [Summary]
+)
+ORDER BY
+[assignee]
